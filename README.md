@@ -34,10 +34,10 @@ git clone https://github.com/yunlianw/WebMonitor.git
 cd WebMonitor
 
 # 2. 启动服务（自动构建镜像 + 启动 MySQL）
-docker-compose up -d
+docker compose up -d
 
 # 3. 查看运行状态
-docker-compose ps
+docker compose ps
 ```
 
 **访问系统：**
@@ -57,7 +57,7 @@ docker-compose ps
 **修改配置：**
 编辑 `docker-compose.yml`，修改 `environment` 中的数据库密码等参数，然后重新启动：
 ```bash
-docker-compose down
+docker compose down
 docker-compose up -d
 ```
 
@@ -70,11 +70,11 @@ docker-compose up -d
 
 **停止/重启：**
 ```bash
-docker-compose stop    # 停止
-docker-compose start   # 启动
-docker-compose restart # 重启
-docker-compose down    # 停止并删除容器
-docker-compose logs -f # 查看日志
+docker compose stop    # 停止
+docker compose start   # 启动
+docker compose restart # 重启
+docker compose down    # 停止并删除容器
+docker compose logs -f # 查看日志
 ```
 
 ---
@@ -371,10 +371,10 @@ chmod 644 config/Config.php
 ### Q: Docker 启动失败？
 ```bash
 # 查看日志
-docker-compose logs -f
+docker compose logs -f
 
 # 重新构建
-docker-compose build --no-cache
+docker compose build --no-cache
 docker-compose up -d
 ```
 
