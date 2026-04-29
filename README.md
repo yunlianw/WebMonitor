@@ -12,22 +12,78 @@
 - **主题系统** - 苹果风格UI，支持自定义主题
 - **告警模板** - 可自定义通知内容
 
-## 安装步骤
+## 安装方式
 
-1. 上传文件到网站目录
-2. 访问 `https://你的域名/install.php`
-3. 按向导完成安装：
-   - 环境检查
-   - 数据库配置
-   - 创建管理员
-4. 删除 `install.php` 文件
-5. 登录后台配置监控任务
+### 方式一：Docker 部署（推荐）
 
-## 环境要求
+适合有 Docker 经验的用户，一键部署。
 
+```bash
+# 克隆仓库
+git clone https://github.com/yunlianw/WebMonitor.git
+cd WebMonitor
+
+# 启动服务
+docker-compose up -d
+
+# 查看状态
+docker-compose ps
+
+# 访问系统
+# http://localhost:8080
+```
+
+**默认账号：**
+- 用户名：`admin`
+- 密码：首次访问 install.php 时设置
+
+**数据库配置（.env 或 docker-compose.yml）：**
+```yaml
+environment:
+  - DB_HOST=db
+  - DB_DATABASE=webmonitor
+  - DB_USERNAME=webmonitor
+  - DB_PASSWORD=WebMonitor2026!
+```
+
+### 方式二：传统部署
+
+适合宝塔面板、VPS 用户，无需 Docker。
+
+**环境要求：**
 - PHP 7.4+
 - MySQL 5.7+
 - PDO / cURL / OpenSSL 扩展
+
+**安装步骤：**
+
+```bash
+# 1. 下载程序到网站目录
+cd /www/wwwroot/your-domain.com
+
+# 从 GitHub 下载或上传压缩包
+wget https://github.com/yunlianw/WebMonitor/archive/refs/heads/main.zip
+unzip main.zip
+mv WebMonitor-main/* .
+rm -rf WebMonitor-main main.zip
+
+# 2. 创建数据库
+# 在宝塔面板或 MySQL 中创建数据库 webmonitor
+
+# 3. 设置目录权限
+chmod -R 755 storage logs data backups
+
+# 4. 访问安装向导
+# https://你的域名/install.php
+
+# 5. 按向导完成安装
+# - 环境检查
+# - 数据库配置
+# - 创建管理员
+
+# 6. 删除安装文件（重要！）
+rm install.php
+```
 
 ## 目录结构
 
@@ -42,6 +98,7 @@
 ├── assets/           # 静态资源
 ├── storage/          # 存储目录
 ├── logs/             # 日志目录
+├── docker/           # Docker 配置
 ├── admin.php         # 后台入口
 ├── login.php         # 登录页面
 ├── api_refactored.php # 监控API
@@ -50,18 +107,17 @@
 
 ## 定时任务
 
-添加以下cron任务：
+**Docker 方式：**
+容器内已自动配置 cron。
 
+**传统方式：**
 ```bash
-# 每5分钟检测一次
+# 编辑 crontab
+crontab -e
+
+# 添加监控任务（每5分钟检测）
 */5 * * * * curl "https://你的域名/api_refactored.php?action=check&key=你的密钥"
 ```
-
-## 默认账号
-
-- 后台: `https://域名/admin.php`
-- 用户名: 安装时设置
-- 密码: 安装时设置
 
 ## 监控节点
 
@@ -69,37 +125,46 @@
 - **内置节点** - 主服务器直接检测
 - **外部节点** - 部署在海外/其他网络环境
 
-节点API：
-```
-GET /node_api.php?action=check&key=节点密钥
-```
+**添加节点：**
+后台 → 节点管理 → 添加节点 → 生成API密钥
+
+**节点部署：**
+将生成的 agent.php 放到节点服务器，配置定时任务。
 
 ## 告警配置
 
 ### 邮件配置
-后台 → 邮件配置 → 填写SMTP信息
+后台 → 邮件配置 → 填写 SMTP 信息
 
-### Telegram配置
-1. 创建Bot（@BotFather）
-2. 获取Bot Token
-3. 获取Chat ID
-4. 后台 → Telegram → 填写配置
+### Telegram 配置
+1. 创建 Bot（@BotFather）
+2. 获取 Bot Token 和 Chat ID
+3. 后台 → Telegram → 填写配置
 
 ## 安全建议
 
-1. 修改数据库默认密码
-2. 配置HTTPS
-3. 设置 `storage/` `logs/` 目录权限为 755
-4. 定期备份数据库
+1. 修改默认数据库密码（Docker 部署）
+2. 配置 HTTPS
+3. 设置目录权限：
+   - `storage/` `logs/` 777
+   - `config/` 644
+4. 安装后删除 `install.php`
+5. 定期备份数据库
 
-## 版本历史
+## 更新日志
 
-### v3.0 (2026-04-29)
+### v3.0 (2026-04-30)
 - 主题系统（苹果风格UI）
 - 告警模板可编辑
 - WHOIS域名监控
 - 多节点分布式架构
+- Docker 支持
 
 ## License
 
 MIT License
+
+## 支持
+
+- Issues: https://github.com/yunlianw/WebMonitor/issues
+- QQ群：待建立
