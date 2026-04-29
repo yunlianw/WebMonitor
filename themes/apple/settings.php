@@ -58,7 +58,7 @@
     
     // 获取数据库大小
     $dbSize = [];
-    $stmt = $conn->query("SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size FROM information_schema.tables WHERE table_schema = 'yunlian'");
+    $stmt = $conn->query("SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) as size FROM information_schema.tables WHERE table_schema = DATABASE()");
     $dbSize['total'] = $stmt->fetch()['size'] ?? 0;
     ?>
     
