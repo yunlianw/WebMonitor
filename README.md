@@ -16,74 +16,9 @@
 | 监控日志 | 完整的检测记录和历史查询 |
 | 数据看板 | 网站状态总览、检测统计、告警统计 |
 
-## 📦 安装方式
+## 📦 安装部署
 
-### 方式一：Docker 部署（推荐）
-
-适合有 Docker 经验的用户，3 条命令搞定。
-
-**前置条件：**
-- Docker 20.10+
-- Docker Compose 2.0+
-
-**安装步骤：**
-
-```bash
-# 1. 克隆仓库
-git clone https://github.com/yunlianw/WebMonitor.git
-cd WebMonitor
-
-# 2. 启动服务（自动构建镜像 + 启动 MySQL）
-docker compose up -d
-
-# 3. 查看运行状态
-docker compose ps
-```
-
-**访问系统：**
-- 地址：`http://服务器IP:8080`
-- 首次访问会进入安装向导，设置管理员账号
-
-**默认配置：**
-
-| 配置项 | 默认值 | 说明 |
-|--------|--------|------|
-| Web 端口 | 8080 | 可在 docker-compose.yml 中修改 |
-| 数据库 | MySQL 8.0 | 自动创建，数据持久化 |
-| 数据库名 | webmonitor | |
-| 数据库用户 | webmonitor | |
-| 数据库密码 | WebMonitor2026! | 建议修改 |
-
-**修改配置：**
-编辑 `docker-compose.yml`，修改 `environment` 中的数据库密码等参数，然后重新启动：
-```bash
-docker compose down
-docker-compose up -d
-```
-
-**数据持久化：**
-以下目录通过 volume 映射，容器删除后数据不丢失：
-- `./storage/` — 存储文件
-- `./logs/` — 日志文件
-- `./backups/` — 备份文件
-- `mysql-data` — MySQL 数据（Docker volume）
-
-**停止/重启：**
-```bash
-docker compose stop    # 停止
-docker compose start   # 启动
-docker compose restart # 重启
-docker compose down    # 停止并删除容器
-docker compose logs -f # 查看日志
-```
-
----
-
-### 方式二：传统部署
-
-适合宝塔面板、LNMP 环境用户。
-
-**前置条件：**
+### 环境要求
 
 | 组件 | 最低版本 | 说明 |
 |------|----------|------|
@@ -92,9 +27,8 @@ docker compose logs -f # 查看日志
 | PDO | — | PHP 扩展 |
 | cURL | — | PHP 扩展 |
 | OpenSSL | — | PHP 扩展 |
-| GD | — | PHP 扩展（可选） |
 
-**安装步骤：**
+### 安装步骤
 
 **1) 下载程序**
 
@@ -119,7 +53,6 @@ rm -rf WebMonitor-main main.zip
 
 ```bash
 chmod 755 storage logs data backups
-chmod 644 config/Config.php
 ```
 
 **4) 运行安装向导**
@@ -139,9 +72,6 @@ chmod 644 config/Config.php
 ```bash
 # 安装完成后必须删除安装文件
 rm install.php
-
-# 确保目录不可写
-chmod 644 config/Config.php
 ```
 
 **6) 设置定时任务**
@@ -157,8 +87,6 @@ crontab -e
 
 > 监控密钥在后台「系统设置」中查看。
 
----
-
 ## 📁 目录结构
 
 ```
@@ -173,21 +101,12 @@ WebMonitor/
 ├── notifications/       # 告警通知
 │   ├── NotificationManager.php    # 通知管理器
 │   ├── EmailNotification.php      # 邮件通知
-│   ├── TelegramNotification.php   # Telegram 通知
-│   └── NotificationInterface.php  # 通知接口
+│   └── TelegramNotification.php   # Telegram 通知
 ├── pages/               # 后台页面（默认主题）
 ├── themes/              # 主题模板
 │   ├── apple/           # 🍎 苹果风格主题
-│   │   ├── style.css    # 苹果风格 CSS（743行）
-│   │   ├── header.php   # 顶部导航
-│   │   ├── dashboard.php # 仪表盘
-│   │   └── ...          # 其他页面模板
 │   └── default/         # 默认主题
 ├── assets/              # 静态资源
-│   └── css/admin.css    # 管理后台样式
-├── docker/              # Docker 配置
-│   ├── nginx.conf       # Nginx 配置
-│   └── entrypoint.sh    # 容器启动脚本
 ├── agent_templates/     # 节点代理模板
 ├── phpmailer/           # 邮件发送库（PHPMailer 6.x）
 ├── storage/             # 存储目录（运行时生成）
@@ -196,11 +115,7 @@ WebMonitor/
 ├── login.php            # 登录页（跟随当前主题）
 ├── api_refactored.php   # 监控 API（定时任务调用）
 ├── install.php          # 安装向导（安装后删除）
-├── install.sql          # 数据库表结构（17张表）
-├── Database.php         # 数据库操作类
-├── Dockerfile           # Docker 镜像构建
-├── docker-compose.yml   # Docker Compose 配置
-└── README.md            # 本文档
+└── install.sql          # 数据库表结构（17张表）
 ```
 
 ## 🗄️ 数据库表
@@ -243,18 +158,6 @@ WebMonitor/
     'charset' => 'utf8mb4'
 ]
 ```
-
-### 环境变量覆盖
-
-支持通过环境变量覆盖配置（适用于 Docker）：
-
-| 环境变量 | 对应配置 |
-|----------|----------|
-| `DB_HOST` | 数据库主机 |
-| `DB_PORT` | 数据库端口 |
-| `DB_DATABASE` | 数据库名 |
-| `DB_USERNAME` | 数据库用户名 |
-| `DB_PASSWORD` | 数据库密码 |
 
 ## 🔔 告警配置
 
@@ -308,13 +211,6 @@ WebMonitor/
 4. 在节点服务器部署 `agent_templates/agent_template.php`
 5. 配置定时任务调用节点脚本
 
-### 节点 API
-
-```
-GET {主站}/node_api.php?action=get_tasks&node_id={ID}&key={密钥}
-POST {主站}/node_api.php?action=report&node_id={ID}&key={密钥}
-```
-
 ## 🎨 主题系统
 
 ### 切换主题
@@ -327,13 +223,6 @@ POST {主站}/node_api.php?action=report&node_id={ID}&key={密钥}
 |------|------|------|
 | 苹果（apple） | 果系简约 | #F5F5F7 背景、#007AFF 主色、圆角卡片 |
 | 默认（default） | 标准后台 | #1a73e8 蓝色主题 |
-
-### 自定义主题
-
-1. 复制 `themes/default/` 为 `themes/your-theme/`
-2. 修改 `theme.json`（主题名称、描述）
-3. 修改 `style.css`（样式）
-4. 修改各页面模板（可选，不覆盖则使用 `pages/` 默认）
 
 ## 🔒 安全建议
 
@@ -350,17 +239,11 @@ POST {主站}/node_api.php?action=report&node_id={ID}&key={密钥}
 6. 定期备份数据库
 7. 监控密钥使用强随机字符串
 
-### Docker 特别注意
-
-8. 修改 `docker-compose.yml` 中的默认数据库密码
-9. 不要将容器端口直接暴露到公网（建议用 Nginx 反向代理）
-
 ## 🆘 常见问题
 
 ### Q: 安装向导提示目录权限不足？
 ```bash
 chmod 755 storage logs data backups
-chmod 644 config/Config.php
 ```
 
 ### Q: 定时任务不执行？
@@ -368,19 +251,9 @@ chmod 644 config/Config.php
 - 检查监控密钥是否正确
 - 检查服务器 curl 是否可用
 
-### Q: Docker 启动失败？
-```bash
-# 查看日志
-docker compose logs -f
-
-# 重新构建
-docker compose build --no-cache
-docker-compose up -d
-```
-
 ### Q: 邮件发送失败？
 - 确认使用的是「授权码」而不是邮箱密码
-- 163/邮箱需要开启 SMTP 服务
+- 163/QQ邮箱需要开启 SMTP 服务
 - 检查 SMTP 端口是否被防火墙拦截
 
 ### Q: Telegram 告警收不到？
@@ -396,8 +269,6 @@ docker-compose up -d
 - ✨ 告警模板可自定义
 - ✨ WHOIS 域名到期监控
 - ✨ 多节点分布式检测
-- ✨ Docker 一键部署
-- ✨ 告警模板编辑器
 - 🐛 修复 CSS 缓存问题（版本号）
 
 ## 📄 License

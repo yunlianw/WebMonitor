@@ -1,6 +1,8 @@
 # 敏感文件
 data/config.json
 install.lock
+
+# 运行时文件
 logs/*
 storage/*
 backups/*
