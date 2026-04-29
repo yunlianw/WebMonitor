@@ -1,0 +1,15 @@
+# 敏感文件
+data/config.json
+install.lock
+logs/*
+storage/*
+backups/*
+
+# 开发文件
+*.backup*
+*.bak
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
