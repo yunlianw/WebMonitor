@@ -7,7 +7,38 @@
 
 ---
 
-## [1.1.0] - 2026-04-29
+## [4.3.0] - 2026-08-31
+
+### 修复（龙虾二号两轮审查 18 项单元测试 PASS）
+
+- 🐛 **HTTP/SSL/WHOIS 告警无视 check_xxx 字段**
+  - `lib/MonitorService.php`：doParallelCheck() 函数不再无条件检测，根据 `check_http`/`check_ssl` 字段跳过，跳过的项标记为 `skipped`，不触发告警
+  - `lib/WhoisMonitorService.php`：非 force 模式的 WHOIS 查询补 `AND check_whois = 1` 过滤
+  - `agent.php`：同样的复制代码 bug 一并修复
+  - `node_api.php handleReport`：加 `WHERE id = ? AND enabled = 1` 守卫，已禁用网站不会被迟到的探针上报触发告警
+- 🐛 **重复添加同一域名报"已存在"无法重新启用**
+  - `admin.php add_website`：改用 `ON DUPLICATE KEY UPDATE`，重复添加时自动重新启用 + 更新检测配置
+- 🐛 **仪表盘不显示已禁用网站**
+  - admin.php 仪表盘查询改为全量展示（`ORDER BY w.enabled DESC`）
+  - 三个主题（apple/default/pages）名称旁加 **"⏸ 已暂停"** 红色徽标
+- 🐛 **过期证书不告警**
+  - `agent.php parseCertInfo` + `node_api.php` SSL 告警：`$days < $minDays`（不再 `> 0 && <`）让过期证书计入
+- 🐛 **null 重试条件 bug**
+  - 修复 `!$http_success` → `=== false`（null 不再触发重试）
+
+### 数据清理
+- 🗑️ 删除测试数据 `wajd.55661.cn`（id=86）及其 8 条误报 alert_logs
+
+### 项目清理
+- 🧹 删除 5 个旧备份文件（4 月、6 月、8 月 16 日），仅保留本次修复的备份
+- 📦 加 .gitignore 排除 `*.backup.*` / `*.bak` / `*.old` / 测试文件 / 敏感配置
+
+### 审查
+- 龙虾二号（deepseek/deepseek-v4-flash）两轮审查，18 项单元测试全 PASS
+
+---
+
+## [4.2.0] - 2026-04-29
 
 ### 新增
 - 🎨 **主题系统** - 支持 WordPress 风格一键切换主题
@@ -40,7 +71,7 @@
 
 ---
 
-## [1.0.0] - 2026-04-28
+## [4.0.0] - 2026-04-28
 
 ### 新增
 - 🚀 初始版本发布
@@ -66,40 +97,6 @@
 - **主版本号（Major）**：不兼容的 API 变更
 - **次版本号（Minor）**：向后兼容的功能新增
 - **修订号（Patch）**：向后兼容的问题修复
-
----
-
-*最后更新: 2026-04-29*
----
-
-## [1.1.1] - 2026-08-31
-
-### 修复（龙虾二号两轮审查 18 项单元测试 PASS）
-
-- 🐛 **HTTP/SSL/WHOIS 告警无视 check_xxx 字段**
-  - `lib/MonitorService.php`：doParallelCheck() 函数不再无条件检测，根据 `check_http`/`check_ssl` 字段跳过，跳过的项标记为 `skipped`，不触发告警
-  - `lib/WhoisMonitorService.php`：非 force 模式的 WHOIS 查询补 `AND check_whois = 1` 过滤
-  - `agent.php`：同样的复制代码 bug 一并修复
-  - `node_api.php handleReport`：加 `WHERE id = ? AND enabled = 1` 守卫，已禁用网站不会被迟到的探针上报触发告警
-- 🐛 **重复添加同一域名报"已存在"无法重新启用**
-  - `admin.php add_website`：改用 `ON DUPLICATE KEY UPDATE`，重复添加时自动重新启用 + 更新检测配置
-- 🐛 **仪表盘不显示已禁用网站**
-  - admin.php 仪表盘查询改为全量展示（`ORDER BY w.enabled DESC`）
-  - 三个主题（apple/default/pages）名称旁加 **"⏸ 已暂停"** 红色徽标
-- 🐛 **过期证书不告警**
-  - `agent.php parseCertInfo` + `node_api.php` SSL 告警：`$days < $minDays`（不再 `> 0 && <`）让过期证书计入
-- 🐛 **null 重试条件 bug**
-  - 修复 `!$http_success` → `=== false`（null 不再触发重试）
-
-### 数据清理
-- 🗑️ 删除测试数据 `wajd.55661.cn`（id=86）及其 8 条误报 alert_logs
-
-### 项目清理
-- 🧹 删除 5 个旧备份文件（4 月、6 月、8 月 16 日），仅保留本次修复的备份
-- 📦 加 .gitignore 排除 `*.backup.*` / `*.bak` / `*.old` / 测试文件 / 敏感配置
-
-### 审查
-- 龙虾二号（deepseek/deepseek-v4-flash）两轮审查，18 项单元测试全 PASS
 
 ---
 
