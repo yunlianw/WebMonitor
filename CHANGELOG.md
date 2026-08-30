@@ -101,3 +101,30 @@
 ---
 
 *最后更新: 2026-08-31*
+
+---
+
+## [4.3.1] - 2026-08-31
+
+### 修复
+
+- 🐛 **last_ssl_status 字段从未被写入**
+  - `lib/NodeScheduler.php`：所有 4 个 UPDATE 分支都漏写 `last_ssl_status`
+  - 新增 `sslStatusFor($sslDays)` 私有方法，统一词表（unknown / expired / warning / valid）
+  - 词表与项目 logResult / node_api.php 统一
+  - 边界修正：`≤ 0 天 → expired`（之前 `0 天 → warning`，违反直觉）
+- 🐛 **wajd.55661.cn 立即检查后状态显示**
+  - 之前只有 HTTP=0+SSL=1 时，写 last_ssl_days 不写 last_ssl_status
+  - 修复后立即看到 `ssl_st=expired, days=-848`
+
+### 验证
+- php -l 通过
+- 实测 5 个 enabled=1 的 SSL 检测网站，状态字段全部正确填入
+- 词表与 logResult / node_api.php 统一（unknown/expired/warning/valid）
+
+### 审查
+- 龙虾二号（deepseek/deepseek-v4-flash）两轮审查 PASS
+
+---
+
+*最后更新: 2026-08-31 00:50*

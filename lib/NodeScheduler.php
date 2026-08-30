@@ -423,19 +423,21 @@ class NodeScheduler {
                 }
             }
             
-            // 更新数据库状态（V4.2：跳过的检测不覆盖原状态）
+            // 更新数据库状态（V4.2：跳过的检测不覆盖原状态；V4.3.1：补齐 SSL 状态字段 + 词表与项目统一）
             if ($httpSkipped && $sslSkipped) {
                 $this->conn->prepare("UPDATE websites SET last_check_time = NOW() WHERE id = ?")
                     ->execute([$site['id']]);
             } elseif ($httpSkipped) {
-                $this->conn->prepare("UPDATE websites SET last_check_time = NOW(), last_ssl_days = ? WHERE id = ?")
-                    ->execute([$sslDays, $site['id']]);
+                $sslStatus = self::sslStatusFor($sslDays);
+                $this->conn->prepare("UPDATE websites SET last_check_time = NOW(), last_ssl_days = ?, last_ssl_status = ? WHERE id = ?")
+                    ->execute([$sslDays, $sslStatus, $site['id']]);
             } elseif ($sslSkipped) {
                 $this->conn->prepare("UPDATE websites SET last_http_status = ?, last_check_time = NOW() WHERE id = ?")
                     ->execute([$status, $site['id']]);
             } else {
-                $this->conn->prepare("UPDATE websites SET last_http_status = ?, last_check_time = NOW(), last_ssl_days = ? WHERE id = ?")
-                    ->execute([$status, $sslDays, $site['id']]);
+                $sslStatus = self::sslStatusFor($sslDays);
+                $this->conn->prepare("UPDATE websites SET last_http_status = ?, last_check_time = NOW(), last_ssl_days = ?, last_ssl_status = ? WHERE id = ?")
+                    ->execute([$status, $sslDays, $sslStatus, $site['id']]);
             }
             
             // V3.3: 记录节点独立检查时间
@@ -460,6 +462,23 @@ class NodeScheduler {
         $this->updateMultiSync($sites, $nodeId);
     }
     
+    /**
+     * V4.3.1: SSL 状态统一计算
+     *
+     * 词表与项目 logResult / node_api.php 统一（unknown / expired / warning / valid）：
+     *   null（检测失败）→ unknown
+     *   ≤ 0 天（已过期）→ expired
+     *   1 ≤ days ≤ 7    → warning（即将过期）
+     *   > 7 天         → valid
+     */
+    private static function sslStatusFor($sslDays): string
+    {
+        if ($sslDays === null) return 'unknown';
+        if ($sslDays <= 0) return 'expired';
+        if ($sslDays <= 7) return 'warning';
+        return 'valid';
+    }
+
     /**
      * V3.6: 更新多点同步计数
      */
