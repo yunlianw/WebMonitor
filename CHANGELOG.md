@@ -128,3 +128,33 @@
 ---
 
 *最后更新: 2026-08-31 00:50*
+
+---
+
+## [4.3.2] - 2026-08-31
+
+### 修复
+
+- 🐛 **自定义端口 SSL 检测失败**（龙虾二号第 2 轮审查发现）
+  - `lib/MonitorService.php`：`parse_url` 后取 host 丢 port，拼成 `https://host` 默认走 443
+  - 修复：补 `port = isset($parsed['port']) ? (int)$parsed['port'] : 443;` + `https://{$host}:{$port}`
+- 🐛 **admin.php normalizeWebsiteUrl() 重建 URL 时丢端口**
+  - 后台添加/编辑网站后，URL 中端口被剥掉（如 `wajd.55661.cn:4433` → `https://wajd.55661.cn`）
+  - 修复：重建时补上 `:port`
+- 🐛 **探针端 agent.php + agent_template.php 同款 bug**
+  - 探针做 SSL 检测时也丢端口
+  - 修复：两处同步加上 port 提取
+
+### 验证
+
+老季实测：添加 `wajd.55661.cn` SSL 检查（实际端口 4433）：
+- 修复前：last_ssl_days = -848（连错服务的过期证书）
+- 修复后：last_ssl_days = **198**（真实证书 2027-03-17 到期）
+
+### 审查
+
+- 龙虾二号（deepseek/deepseek-v4-flash）两轮审查 PASS
+
+---
+
+*最后更新: 2026-08-31 01:38*

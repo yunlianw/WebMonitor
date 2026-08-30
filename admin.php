@@ -244,7 +244,8 @@ function normalizeWebsiteUrl($input) {
         
         // 重建规范化URL（去掉末尾斜杠）
         $scheme = isset($parsed['scheme']) ? $parsed['scheme'] . '://' : 'https://';
-        $normalizedUrl = $scheme . $host;
+        $port = isset($parsed['port']) ? ':' . (int)$parsed['port'] : '';
+        $normalizedUrl = $scheme . $host . $port;
         
         // 如果有路径，保留（但去掉开头的斜杠）
         if (isset($parsed['path']) && $parsed['path'] !== '/') {

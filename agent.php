@@ -1,13 +1,13 @@
 <?php
 /**
  * 探针端脚本 V2.0 - 零配置部署版
- * 
+ *
  * 部署方式：
  * 1. 从主控后台下载此文件（已内置配置）
  * 2. 上传到节点服务器
  * 3. 宝塔添加计划任务：每分钟访问一次
  * 4. 完成！
- * 
+ *
  * 支持模式：
  * - Pull模式：主控主动请求此探针
  * - Push模式：此探针主动向主控领任务
@@ -66,33 +66,33 @@ switch ($action) {
  */
 function handlePullCheck() {
     global $config;
-    
+
     // 验证密钥
     $key = $_GET['key'] ?? $_POST['key'] ?? '';
     if (empty($key)) {
         jsonResponse(false, "缺少密钥");
     }
-    
+
     // 获取任务数据
     $tasksJson = $_POST['tasks'] ?? file_get_contents('php://input');
     $tasks = json_decode($tasksJson, true);
-    
+
     if (!$tasks || !is_array($tasks)) {
         jsonResponse(false, "任务数据格式错误");
     }
-    
+
     // 获取配置
     $timeout = intval($_GET['timeout'] ?? $_POST['timeout'] ?? 10);
     $maxRetry = intval($_GET['max_retry'] ?? $_POST['max_retry'] ?? 3);
-    
+
     // 执行检测
     $results = parallelCheck($tasks, $timeout, $maxRetry);
-    
+
     // V3.6: 为每个结果添加 node_id
     foreach ($results as &$result) {
         $result['node_id'] = $config['node_id'];
     }
-    
+
     jsonResponse(true, "检测完成", [
         'results' => array_values($results),
         'total' => count($results),
@@ -107,46 +107,46 @@ function handlePullCheck() {
  */
 function handlePushMode() {
     global $config;
-    
+
     if (empty($config['master_url']) || empty($config['node_id']) || empty($config['api_key'])) {
         jsonResponse(false, "配置不完整，请重新从主控下载探针");
     }
-    
+
     // 1. 向主控领取任务
     $taskUrl = rtrim($config['master_url'], '/') . "/node_api.php?action=get_tasks&node_id={$config['node_id']}&key={$config['api_key']}";
     $taskResponse = httpGet($taskUrl);
-    
+
     if (!$taskResponse['success']) {
         jsonResponse(false, "领取任务失败: " . $taskResponse['message']);
     }
-    
+
     $taskData = json_decode($taskResponse['body'], true);
     if (!$taskData || !$taskData['success']) {
         jsonResponse(false, "主控返回错误: " . ($taskData['message'] ?? '未知错误'));
     }
-    
+
     $sites = $taskData['data']['sites'] ?? [];
     $checkConfig = $taskData['data']['config'] ?? [];
-    
+
     if (empty($sites)) {
         jsonResponse(true, "无任务需要执行", ['total' => 0, 'node' => $taskData['data']['node'] ?? []]);
     }
-    
+
     // 2. 执行检测
     $timeout = $checkConfig['timeout'] ?? 10;
     $maxRetry = $checkConfig['max_retry'] ?? 3;
-    
+
     $results = parallelCheck($sites, $timeout, $maxRetry);
-    
+
     // 3. 上报结果
     $reportData = array_values($results);
     $reportUrl = rtrim($config['master_url'], '/') . "/node_api.php?action=report&node_id={$config['node_id']}&key={$config['api_key']}";
     $reportResponse = httpPost($reportUrl, $reportData);
-    
+
     if (!$reportResponse['success']) {
         jsonResponse(false, "上报结果失败: " . $reportResponse['message']);
     }
-    
+
     jsonResponse(true, "Push模式执行成功", [
         'checked' => count($sites),
         'reported' => count($results),
@@ -159,7 +159,7 @@ function handlePushMode() {
  */
 function handleStatus() {
     global $config;
-    
+
     jsonResponse(true, "探针运行正常", [
         'version' => '2.0.0',
         'php_version' => PHP_VERSION,
@@ -178,14 +178,14 @@ function handleStatus() {
  */
 function handleTest() {
     global $config;
-    
+
     if (empty($config['master_url'])) {
         jsonResponse(false, "主控地址未配置");
     }
-    
+
     $testUrl = rtrim($config['master_url'], '/') . "/node_api.php?action=ip_location&ip=" . $_SERVER['SERVER_ADDR'] ?? '127.0.0.1';
     $response = httpGet($testUrl);
-    
+
     jsonResponse(true, "测试完成", [
         'master_url' => $config['master_url'],
         'master_reachable' => $response['success'],
@@ -200,12 +200,12 @@ function handleTest() {
  */
 function parallelCheck(array $sites, int $timeout = 10, int $maxRetry = 3): array {
     if (empty($sites)) return [];
-    
+
     $results = [];
-    
+
     // 第一轮并发检测
     $firstRound = doParallelCheck($sites, $timeout);
-    
+
     // 收集失败的网站（V4.2：http_success=null 表示未启用HTTP检测，不参与重试）
     $failedSites = [];
     foreach ($firstRound as $siteId => $result) {
@@ -219,18 +219,18 @@ function parallelCheck(array $sites, int $timeout = 10, int $maxRetry = 3): arra
             }
         }
     }
-    
+
     // 并行重试
     $retryCount = 0;
     while (!empty($failedSites) && $retryCount < $maxRetry) {
         $retryCount++;
         $retryResults = doParallelCheck($failedSites, $timeout);
-        
+
         $stillFailed = [];
         foreach ($retryResults as $siteId => $result) {
             $results[$siteId] = $result;
             $results[$siteId]['retries'] = $retryCount;
-            
+
             if ($result['http_success'] === false) {
                 foreach ($failedSites as $site) {
                     if ($site['id'] == $siteId) {
@@ -240,14 +240,14 @@ function parallelCheck(array $sites, int $timeout = 10, int $maxRetry = 3): arra
                 }
             }
         }
-        
+
         $failedSites = $stillFailed;
-        
+
         if (!empty($failedSites) && $retryCount < $maxRetry) {
             usleep(500000);
         }
     }
-    
+
     return $results;
 }
 
@@ -257,15 +257,15 @@ function parallelCheck(array $sites, int $timeout = 10, int $maxRetry = 3): arra
  */
 function doParallelCheck(array $sites, int $timeout): array {
     if (empty($sites)) return [];
-    
+
     $results = [];
     $httpResults = [];
     $sslResults = [];
-    
+
     // ========== 第一轮：HTTP检测（跟随跳转，获取最终页面状态） ==========
     $mh = curl_multi_init();
     $handles = [];
-    
+
     foreach ($sites as $site) {
         // V4.2修复：尊重 check_http 字段，未启用HTTP检测的网站直接跳过
         $checkHttp = isset($site['check_http']) ? (int)$site['check_http'] : 1;
@@ -289,30 +289,30 @@ function doParallelCheck(array $sites, int $timeout): array {
             CURLOPT_MAXREDIRS => 5,
             CURLOPT_CONNECTTIMEOUT => 5
         ]);
-        
+
         curl_multi_add_handle($mh, $ch);
         $handles[$site['id']] = ['ch' => $ch, 'site' => $site];
     }
-    
+
     $running = null;
     do {
         curl_multi_exec($mh, $running);
         curl_multi_select($mh);
     } while ($running > 0);
-    
+
     // 收集HTTP结果
     foreach ($handles as $siteId => $handle) {
         $ch = $handle['ch'];
         $site = $handle['site'];
-        
+
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         $responseTime = curl_getinfo($ch, CURLINFO_TOTAL_TIME) * 1000;
         $httpSuccess = ($httpCode >= 200 && $httpCode < 400);
-        
+
         curl_multi_remove_handle($mh, $ch);
         curl_close($ch);
-        
+
         $httpResults[$siteId] = [
             'http_success' => $httpSuccess,
             'http_code' => $httpCode ?: 0,
@@ -320,13 +320,13 @@ function doParallelCheck(array $sites, int $timeout): array {
             'response_time' => round($responseTime)
         ];
     }
-    
+
     curl_multi_close($mh);
-    
+
     // ========== 第二轮：SSL检测（不跟随跳转，获取原始域名证书） ==========
     $mh2 = curl_multi_init();
     $sslHandles = [];
-    
+
     foreach ($sites as $site) {
         // V4.2修复：尊重 check_ssl 字段，未启用SSL检测的网站直接跳过
         $checkSsl = isset($site['check_ssl']) ? (int)$site['check_ssl'] : 1;
@@ -338,11 +338,12 @@ function doParallelCheck(array $sites, int $timeout): array {
             ];
             continue;
         }
-        // 从URL提取host
+        // 从URL提取host和port
         $url = $site['url'];
         $parsed = parse_url($url);
         $host = $parsed['host'] ?? $url;
-        
+        $port = isset($parsed['port']) ? (int)$parsed['port'] : 443;
+
         // 只检测HTTPS网站
         if (!isset($parsed['scheme']) || $parsed['scheme'] !== 'https') {
             $sslResults[$site['id']] = [
@@ -353,7 +354,7 @@ function doParallelCheck(array $sites, int $timeout): array {
         }
         
         // 发起SSL检测请求（不跟随跳转）
-        $sslUrl = "https://{$host}";
+        $sslUrl = "https://{$host}:{$port}";
         $ch = curl_init($sslUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -365,11 +366,11 @@ function doParallelCheck(array $sites, int $timeout): array {
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_NOBODY => true               // 只获取头信息
         ]);
-        
+
         curl_multi_add_handle($mh2, $ch);
         $sslHandles[$site['id']] = ['ch' => $ch, 'site' => $site];
     }
-    
+
     // 并发执行SSL检测
     if (count($sslHandles) > 0) {
         $running = null;
@@ -377,18 +378,18 @@ function doParallelCheck(array $sites, int $timeout): array {
             curl_multi_exec($mh2, $running);
             curl_multi_select($mh2);
         } while ($running > 0);
-        
+
         // 收集SSL结果
         foreach ($sslHandles as $siteId => $handle) {
             $ch = $handle['ch'];
             $site = $handle['site'];
-            
+
             $certInfo = curl_getinfo($ch, CURLINFO_CERTINFO);
             $error = curl_error($ch);
-            
+
             curl_multi_remove_handle($mh2, $ch);
             curl_close($ch);
-            
+
             // 解析SSL证书
             $sslDays = null;
             $sslError = null;
@@ -399,16 +400,16 @@ function doParallelCheck(array $sites, int $timeout): array {
             } elseif ($error && strpos($error, 'SSL') !== false) {
                 $sslError = parseSSLError($error);
             }
-            
+
             $sslResults[$siteId] = [
                 'ssl_days' => $sslDays,
                 'ssl_error' => $sslError
             ];
         }
     }
-    
+
     curl_multi_close($mh2);
-    
+
     // ========== 合并HTTP和SSL结果 ==========
     foreach ($sites as $site) {
         $siteId = $site['id'];
@@ -422,10 +423,10 @@ function doParallelCheck(array $sites, int $timeout): array {
             'ssl_days' => null,
             'ssl_error' => '检测失败'
         ];
-        
+
         $httpSkipped = !empty($http['skipped']);
         $sslSkipped = !empty($ssl['skipped']);
-        
+
         $results[$siteId] = [
             'site_id' => $siteId,
             'url' => $site['url'],
@@ -442,7 +443,7 @@ function doParallelCheck(array $sites, int $timeout): array {
             'checked_at' => date('Y-m-d H:i:s')
         ];
     }
-    
+
     return $results;
 }
 
@@ -452,27 +453,27 @@ function doParallelCheck(array $sites, int $timeout): array {
 function parseCertInfo(array $certInfo): array {
     $minDays = PHP_INT_MAX;
     $error = null;
-    
+
     foreach ($certInfo as $cert) {
         if (isset($cert['Expire date'])) {
             $expireTime = strtotime($cert['Expire date']);
             if ($expireTime === false) continue;
-            
+
             $days = floor(($expireTime - time()) / 86400);
-            
+
             if ($days <= 0) {
                 $error = '证书已过期';
             } elseif ($days <= 7) {
                 $error = "证书即将过期(剩余{$days}天)";
             }
-            
+
             // V4.2修复：过期证书（days<=0）也计入最小天数，与主控端行为一致
             if ($days < $minDays) {
                 $minDays = $days;
             }
         }
     }
-    
+
     return ['days' => $minDays < PHP_INT_MAX ? $minDays : null, 'error' => $error];
 }
 
@@ -489,13 +490,13 @@ function parseSSLError(string $error): string {
         'self signed certificate' => '自签名证书',
         'SSL certificate problem' => 'SSL证书问题'
     ];
-    
+
     foreach ($errorMap as $key => $msg) {
         if (stripos($error, $key) !== false) {
             return $msg;
         }
     }
-    
+
     return 'SSL握手失败: ' . $error;
 }
 
@@ -511,13 +512,13 @@ function httpGet($url) {
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false
     ]);
-    
+
     $body = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     $errorNo = curl_errno($ch);
     curl_close($ch);
-    
+
     // CURL层面错误
     if ($errorNo) {
         $errorMap = [
@@ -535,7 +536,7 @@ function httpGet($url) {
             'message' => $errorDetail
         ];
     }
-    
+
     // 解析API返回的JSON（无论HTTP状态码是什么）
     $json = json_decode($body, true);
     if ($json && isset($json['success'])) {
@@ -554,7 +555,7 @@ function httpGet($url) {
             'message' => 'OK'
         ];
     }
-    
+
     // 无法解析JSON，返回HTTP状态
     return [
         'success' => $httpCode >= 200 && $httpCode < 300,
@@ -579,13 +580,13 @@ function httpPost($url, $data) {
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false
     ]);
-    
+
     $body = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     $errorNo = curl_errno($ch);
     curl_close($ch);
-    
+
     // 详细错误信息
     if ($errorNo) {
         $errorMap = [
@@ -598,7 +599,7 @@ function httpPost($url, $data) {
     } else {
         $errorDetail = "HTTP {$httpCode}";
     }
-    
+
     return [
         'success' => $httpCode >= 200 && $httpCode < 300,
         'body' => $body,

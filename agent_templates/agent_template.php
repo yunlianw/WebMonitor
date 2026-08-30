@@ -316,10 +316,11 @@ function doParallelCheck(array $sites, int $timeout): array {
     $sslHandles = [];
     
     foreach ($sites as $site) {
-        // 从URL提取host
+        // 从URL提取host和port
         $url = $site['url'];
         $parsed = parse_url($url);
         $host = $parsed['host'] ?? $url;
+        $port = isset($parsed['port']) ? (int)$parsed['port'] : 443;
         
         // 只检测HTTPS网站
         if (!isset($parsed['scheme']) || $parsed['scheme'] !== 'https') {
@@ -331,7 +332,7 @@ function doParallelCheck(array $sites, int $timeout): array {
         }
         
         // 发起SSL检测请求（不跟随跳转）
-        $sslUrl = "https://{$host}";
+        $sslUrl = "https://{$host}:{$port}";
         $ch = curl_init($sslUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,

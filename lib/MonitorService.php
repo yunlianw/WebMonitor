@@ -250,10 +250,11 @@ class MonitorService {
                 ];
                 continue;
             }
-            // 从URL提取host
+            // 从URL提取host和port
             $url = $site['url'];
             $parsed = parse_url($url);
             $host = $parsed['host'] ?? $url;
+            $port = isset($parsed['port']) ? (int)$parsed['port'] : 443;
             
             // 只检测HTTPS网站
             if (!isset($parsed['scheme']) || $parsed['scheme'] !== 'https') {
@@ -265,7 +266,8 @@ class MonitorService {
             }
             
             // 发起SSL检测请求（不跟随跳转）
-            $sslUrl = "https://{$host}";
+            // V4.3.1: 修复自定义端口（port=4433 等）的 SSL 检测
+            $sslUrl = "https://{$host}:{$port}";
             $ch = curl_init($sslUrl);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
