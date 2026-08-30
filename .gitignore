@@ -1,23 +1,23 @@
 # 数据库配置（含密码）
 /config/Config.php
 /data/
-
-# 运行时生成
-/install/install.lock
+/logs/
 /backups/
 /storage/
-/logs/
+
+# 安装锁
+/install/install.lock
 
 # 备份文件
 *.backup.*
 *.bak
 *.old
+*.backup_*
 *.bak_*
 *.old_*
-*.backup_*
+
+# 临时/测试
 *.current*
 *.new
 *.fixed
-
-# 测试文件
 tests_v42*
